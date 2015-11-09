@@ -8,19 +8,31 @@ public class EmailDataset {
 	private ArrayList<Email> validEmails;
 	private int numEmails, numSpamEmails, numValidEmails;
 	
-	private HashMap<String, Integer> allEmailWordFreq;
-	private HashMap<String, Integer> spamEmailWordFreq;
-	private HashMap<String, Integer> validEmailWordFreq;
+	private HashMap<String, Integer> allEmailWordCounts;
+	private HashMap<String, Integer> spamEmailWordCounts;
+	private HashMap<String, Integer> validEmailWordCounts;
 	private int totalWordCount, totalSpamWordCount, totalValidWordCount;
+	
+	
+	private int k = 1;
+	private HashMap<String, Double> spamLikelihoods;
+	private HashMap<String, Double> validLikelihoods;
+	private HashMap<String, Double> combinedLikelihoods;
+	
+	
 	
 	
 	public EmailDataset(ArrayList<Email> allEmails){
 		this.allEmails = allEmails;
 		this.populateSeparatedEmailLists();
 		this.populateWordFeqMaps();
+		this.calculateLikelihoods();
 	}
 	
+
 	
+
+
 	private void populateSeparatedEmailLists() {
 		this.spamEmails = new ArrayList<Email>();
 		this.validEmails = new ArrayList<Email>();
@@ -42,43 +54,93 @@ public class EmailDataset {
 	private void populateWordFeqMaps() {
 		
 		this.totalSpamWordCount = this.totalValidWordCount = 0;
-		this.allEmailWordFreq = new HashMap<String, Integer>();
-		this.spamEmailWordFreq = new HashMap<String, Integer>();
-		this.validEmailWordFreq = new HashMap<String, Integer>();
+		this.allEmailWordCounts = new HashMap<String, Integer>();
+		this.spamEmailWordCounts = new HashMap<String, Integer>();
+		this.validEmailWordCounts = new HashMap<String, Integer>();
 		
 		for(Email email : this.spamEmails){
 			for(String key : email.getWordCountMap().keySet()){
-				int prevCount = this.spamEmailWordFreq.containsKey(key) ? this.spamEmailWordFreq.get(key) : 0;
+				int prevCount = this.spamEmailWordCounts.containsKey(key) ? this.spamEmailWordCounts.get(key) : 0;
 				int additionalCount = email.getWordCountMap().get(key);
-				this.spamEmailWordFreq.put(key, prevCount + additionalCount);
+				this.spamEmailWordCounts.put(key, prevCount + additionalCount);
 				this.totalSpamWordCount += additionalCount;
 			}
 		}
 		for(Email email : this.validEmails){
 			for(String key : email.getWordCountMap().keySet()){
-				int prevCount = this.validEmailWordFreq.containsKey(key) ? this.validEmailWordFreq.get(key) : 0;
+				int prevCount = this.validEmailWordCounts.containsKey(key) ? this.validEmailWordCounts.get(key) : 0;
 				int additionalCount = email.getWordCountMap().get(key);
-				this.validEmailWordFreq.put(key, prevCount + additionalCount);
+				this.validEmailWordCounts.put(key, prevCount + additionalCount);
 				this.totalValidWordCount += additionalCount;
 			}
 		}
 		
-		for(String key : this.spamEmailWordFreq.keySet()){
-			int prevCount = this.allEmailWordFreq.containsKey(key) ? this.allEmailWordFreq.get(key) : 0;
-			int additionalCount = this.spamEmailWordFreq.get(key);
-			this.allEmailWordFreq.put(key, prevCount + additionalCount);
+		for(String key : this.spamEmailWordCounts.keySet()){
+			int prevCount = this.allEmailWordCounts.containsKey(key) ? this.allEmailWordCounts.get(key) : 0;
+			int additionalCount = this.spamEmailWordCounts.get(key);
+			this.allEmailWordCounts.put(key, prevCount + additionalCount);
 		}
-		for(String key : this.validEmailWordFreq.keySet()){
-			int prevCount = this.allEmailWordFreq.containsKey(key) ? this.allEmailWordFreq.get(key) : 0;
-			int additionalCount = this.validEmailWordFreq.get(key);
-			this.allEmailWordFreq.put(key, prevCount + additionalCount);
+		for(String key : this.validEmailWordCounts.keySet()){
+			int prevCount = this.allEmailWordCounts.containsKey(key) ? this.allEmailWordCounts.get(key) : 0;
+			int additionalCount = this.validEmailWordCounts.get(key);
+			this.allEmailWordCounts.put(key, prevCount + additionalCount);
 		}
 		
 		this.totalWordCount = this.totalSpamWordCount+ this.totalValidWordCount;
 	}
 
 	
+	private void calculateLikelihoods() {
+		int V;
+		
+		this.spamLikelihoods = new HashMap<String, Double>();
+		this.validLikelihoods = new HashMap<String, Double>();
+		this.combinedLikelihoods = new HashMap<String, Double>();
+		double tempLikelihood;
+		
+		V = this.spamEmailWordCounts.size();
+		for(String key : this.spamEmailWordCounts.keySet()){
+			tempLikelihood = 1.0*(this.k+this.spamEmailWordCounts.get(key))/(this.k*V+this.totalSpamWordCount);
+			this.spamLikelihoods.put(key, tempLikelihood);
+		}
+		
+		V = this.validEmailWordCounts.size();
+		for(String key : this.validEmailWordCounts.keySet()){
+			tempLikelihood = 1.0*(this.k+this.validEmailWordCounts.get(key))/(this.k*V+this.totalValidWordCount);
+			this.validLikelihoods.put(key, tempLikelihood);
+		}
+		
+		V = this.allEmailWordCounts.size();
+		for(String key : this.allEmailWordCounts.keySet()){
+			tempLikelihood = 1.0*(this.k+this.allEmailWordCounts.get(key))/(this.k*V+this.totalWordCount);
+			this.combinedLikelihoods.put(key, tempLikelihood);
+		}
+	}
 
+	public double getSpecificLikelihood(String word, boolean bAssumeSpam){
+		double likelihood;
+		double V;
+		if(bAssumeSpam){
+			if(this.spamLikelihoods.containsKey(word)){
+				likelihood = this.spamLikelihoods.get(word);
+			}
+			else{
+				V = this.spamEmailWordCounts.size();
+				likelihood = 1.0*(this.k+0)/(this.k*V+this.totalSpamWordCount);
+			}
+		}
+		else{
+			if(this.validLikelihoods.containsKey(word)){
+				likelihood = this.validLikelihoods.get(word);
+			}
+			else{
+				V = this.validEmailWordCounts.size();
+				likelihood = 1.0*(this.k+0)/(this.k*V+this.totalValidWordCount);
+			}
+		}
+		return likelihood;
+	}
+	
 	
 	public ArrayList<Email> getAllEmails() {
 		return allEmails;
@@ -104,16 +166,16 @@ public class EmailDataset {
 		return numValidEmails;
 	}
 
-	public HashMap<String, Integer> getAllEmailWordFreq() {
-		return allEmailWordFreq;
+	public HashMap<String, Integer> getAllEmailWordCounts() {
+		return allEmailWordCounts;
 	}
 
-	public HashMap<String, Integer> getSpamEmailWordFreq() {
-		return spamEmailWordFreq;
+	public HashMap<String, Integer> getSpamEmailWordCounts() {
+		return spamEmailWordCounts;
 	}
 
-	public HashMap<String, Integer> getValidEmailWordFreq() {
-		return validEmailWordFreq;
+	public HashMap<String, Integer> getValidEmailWordCounts() {
+		return validEmailWordCounts;
 	}
 
 	public int getTotalWordCount() {
@@ -128,7 +190,30 @@ public class EmailDataset {
 		return totalValidWordCount;
 	}
 
+	//priors P(class)
+	public double getPriorProbabilitySpam(){
+		return 1.0*this.numSpamEmails/this.numEmails;
+	}
+	public double getPriorProbabilityValid(){
+		return 1.0*this.numValidEmails/this.numEmails;
+	}
+	
+	//Conditional Probabilities P(word | class)
+	public HashMap<String, Double> getSpamLikelihoods() {
+		return spamLikelihoods;
+	}
 
+	public HashMap<String, Double> getValidLikelihoods() {
+		return validLikelihoods;
+	}
+
+	public HashMap<String, Double> getCombinedLikelihoods() {
+		return combinedLikelihoods;
+	}
+
+	
+	
+	
 	public static void main(String[] args) {
 		FileReader fr = new FileReader();
 		String emailTrainingDataFilename = "spam_detection/train_email.txt";
@@ -141,6 +226,25 @@ public class EmailDataset {
 		System.out.println(mrd.getTotalSpamWordCount() + " Spam Word Instances");
 		System.out.println(mrd.getTotalValidWordCount() + " Valid Word Instances");
 		System.out.println(mrd.getTotalWordCount() + " Total Word Instances");
+		
+		double sum = 0;
+		for(String key : mrd.getSpamLikelihoods().keySet()){
+			sum += mrd.getSpamLikelihoods().get(key);
+		}
+		System.out.println(sum + " sum of likelihoods for spam words");
+		
+		sum = 0;
+		for(String key : mrd.getValidLikelihoods().keySet()){
+			sum += mrd.getValidLikelihoods().get(key);
+		}
+		System.out.println(sum + " sum of likelihoods for valid words");
+		
+		sum = 0;
+		for(String key : mrd.getCombinedLikelihoods().keySet()){
+			sum += mrd.getCombinedLikelihoods().get(key);
+		}
+		System.out.println(sum + " sum of likelihoods for all words");
+		
 	}
 
 }
