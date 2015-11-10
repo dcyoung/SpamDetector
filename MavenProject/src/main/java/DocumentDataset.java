@@ -81,11 +81,13 @@ public class DocumentDataset {
 				this.totalFlaggedWordCount += additionalCount;
 				
 				// This word has occurred in one more document
-				if (this.flaggedDocOccurrenceCounts.containsKey(key)) {
-					int val = this.flaggedDocOccurrenceCounts.get(key) + 1;
-					this.flaggedDocOccurrenceCounts.put(key, val);
-				} else {
-					this.flaggedDocOccurrenceCounts.put(key, 0);
+				if (additionalCount > 0) {
+					if (this.flaggedDocOccurrenceCounts.containsKey(key)) {
+						int val = this.flaggedDocOccurrenceCounts.get(key) + 1;
+						this.flaggedDocOccurrenceCounts.put(key, val);
+					} else {
+						this.flaggedDocOccurrenceCounts.put(key, 1);
+					}
 				}
 			}
 		}
@@ -98,11 +100,13 @@ public class DocumentDataset {
 				this.totalUnflaggedWordCount += additionalCount;
 
 				// This word has occurred in one more document
-				if (this.unflaggedDocOccurrenceCounts.containsKey(key)) {
-					int val = this.unflaggedDocOccurrenceCounts.get(key) + 1;
-					this.unflaggedDocOccurrenceCounts.put(key, val);
-				} else {
-					this.unflaggedDocOccurrenceCounts.put(key, 0);
+				if (additionalCount > 0) {
+					if (this.unflaggedDocOccurrenceCounts.containsKey(key)) {
+						int val = this.unflaggedDocOccurrenceCounts.get(key) + 1;
+						this.unflaggedDocOccurrenceCounts.put(key, val);
+					} else {
+						this.unflaggedDocOccurrenceCounts.put(key, 1);
+					}
 				}
 			}
 		}
@@ -153,15 +157,13 @@ public class DocumentDataset {
 			this.combinedLikelihoods.put(key, tempLikelihood);
 		}
 
-		V = this.getNumFlaggedDocs();
 		for(String key : this.flaggedDocOccurrenceCounts.keySet()) {
-			tempLikelihood = 1.0*(this.k + this.flaggedDocOccurrenceCounts.get(key))/(this.k*V+this.getNumFlaggedDocs());
+			tempLikelihood = 1.0*(this.k + this.flaggedDocOccurrenceCounts.get(key))/(this.k+this.getNumFlaggedDocs());
 			this.flagOccurrenceLikelihoods.put(key, tempLikelihood);
 		}
 
-		V = this.getNumUnflaggedDocs();
 		for(String key : this.unflaggedDocOccurrenceCounts.keySet()) {
-			tempLikelihood = 1.0*(this.k + this.unflaggedDocOccurrenceCounts.get(key))/(this.k*V+this.getNumUnflaggedDocs());
+			tempLikelihood = 1.0*(this.k + this.unflaggedDocOccurrenceCounts.get(key))/(this.k+this.getNumUnflaggedDocs());
 			this.unflagOccurrenceLikelihoods.put(key, tempLikelihood);
 		}
 	}
@@ -180,7 +182,7 @@ public class DocumentDataset {
 			} else {
 				likelihood = this.flagOccurrenceLikelihoods.containsKey(word) ?
 							this.flagOccurrenceLikelihoods.get(word) :
-						(this.k / (this.getNumFlaggedDocs()*this.k + this.getNumFlaggedDocs()));
+						(this.k / (this.k + this.getNumFlaggedDocs()));
 			}
 		}
 		else{
@@ -193,7 +195,7 @@ public class DocumentDataset {
 				}
 			} else {
 				likelihood = this.unflagOccurrenceLikelihoods.containsKey(word) ?
-						this.unflagOccurrenceLikelihoods.get(word) : (this.k / this.getNumUnflaggedDocs()*this.k + this.getNumUnflaggedDocs());
+						this.unflagOccurrenceLikelihoods.get(word) : (this.k / (this.k + this.getNumUnflaggedDocs()));
 			}
 		}
 

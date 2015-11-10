@@ -32,21 +32,29 @@ public class FlagDetector {
 		double PWord_i;
 		//for each word in the document
 		for(String word : document.getWordCountMap().keySet()){
-			//be sure to consider each instance of the same word as a new W_i
-			for(int i = 0; i < document.getWordCountMap().get(word); i++){
+			if (bernoulli) {
 				PWord_i = Math.log(this.trainedData.getSpecificLikelihood(word, true, bernoulli));
 				postProbIsFlagged += PWord_i;
-			}
 
-			//be sure to consider each instance of the same word as a new W_i
-			for(int i = 0; i < document.getWordCountMap().get(word); i++){
 				PWord_i = Math.log(this.trainedData.getSpecificLikelihood(word, false, bernoulli));
 				postProbIsUnflagged += PWord_i;
+			} else {
+				//be sure to consider each instance of the same word as a new W_i
+				for (int i = 0; i < document.getWordCountMap().get(word); i++) {
+					PWord_i = Math.log(this.trainedData.getSpecificLikelihood(word, true, bernoulli));
+					postProbIsFlagged += PWord_i;
+				}
+
+				//be sure to consider each instance of the same word as a new W_i
+				for (int i = 0; i < document.getWordCountMap().get(word); i++) {
+					PWord_i = Math.log(this.trainedData.getSpecificLikelihood(word, false, bernoulli));
+					postProbIsUnflagged += PWord_i;
+				}
 			}
 		}
 
 		
-		if(postProbIsFlagged > postProbIsUnflagged){
+ 		if(postProbIsFlagged > postProbIsUnflagged){
 			return true;
 		}
 		return false;
