@@ -1,21 +1,21 @@
 import java.util.HashMap;
 
-public class MovieReview {
+public class TextDocument {
 	
 	private HashMap<String, Integer> wordCountMap;
-	private boolean bIsPositive;
+	private boolean bIsFlagged;
 	
-	public MovieReview(boolean bIsPositive, HashMap<String, Integer> wordCountMap){
+	public TextDocument(boolean bIsFlagged, HashMap<String, Integer> wordCountMap){
 		this.wordCountMap = wordCountMap;
-		this.bIsPositive = bIsPositive;
+		this.bIsFlagged = bIsFlagged;
 	}
 	
 	public HashMap<String, Integer> getWordCountMap() {
 		return this.wordCountMap;
 	}
 	
-	public boolean isPositive() {
-		return this.bIsPositive;
+	public boolean isFlagged() {
+		return this.bIsFlagged;
 	}
 
 	public static void main(String[] args) {
