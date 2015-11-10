@@ -61,34 +61,9 @@ public class FlagDetector {
 		String emailTestingDataFilename = "spam_detection/test_email.txt";
 		ArrayList<TextDocument> testingEmails = fr.readDocumentData(emailTestingDataFilename);
 		
-		DocumentDataset mrd = new DocumentDataset(trainingEmails);
-		System.out.println(mrd.getNumUnflaggedDocs() + " Valid Emails");
-		System.out.println(mrd.getNumFlaggedDocs() + " Spam Emails");
-		System.out.println(mrd.getNumDocs() + " Total Emails");
-		System.out.println(mrd.getTotalFlaggedWordCount() + " Spam Word Instances");
-		System.out.println(mrd.getTotalUnflaggedWordCount() + " Valid Word Instances");
-		System.out.println(mrd.getTotalWordCount() + " Total Word Instances");
-		
-		double sum = 0;
-		for(String key : mrd.getFlaggedLikelihoods().keySet()){
-			sum += mrd.getFlaggedLikelihoods().get(key);
-		}
-		System.out.println(sum + " sum of likelihoods for spam words");
-		
-		sum = 0;
-		for(String key : mrd.getUnflaggedLikelihoods().keySet()){
-			sum += mrd.getUnflaggedLikelihoods().get(key);
-		}
-		System.out.println(sum + " sum of likelihoods for valid words");
-		
-		sum = 0;
-		for(String key : mrd.getCombinedLikelihoods().keySet()){
-			sum += mrd.getCombinedLikelihoods().get(key);
-		}
-		System.out.println(sum + " sum of likelihoods for all words");
-		
-		
-		FlagDetector spamDetector = new FlagDetector(mrd);
+		DocumentDataset emailTrainingData = new DocumentDataset(trainingEmails);
+
+		FlagDetector spamDetector = new FlagDetector(emailTrainingData);
 		double count=0;
 		for(TextDocument email : testingEmails){
 			boolean calculated = spamDetector.detectFlag(email);
@@ -96,8 +71,57 @@ public class FlagDetector {
 			if(calculated == expected){count++;};
 			//System.out.println("Expected " + expected + ", determined " + calculated);
 		}
-		System.out.println(count/testingEmails.size());
+		System.out.println("Email Spam Detection Accuracy: " + count/testingEmails.size());
 		
+		
+//		System.out.println(emailTrainingData.getNumUnflaggedDocs() + " Valid Emails");
+//		System.out.println(emailTrainingData.getNumFlaggedDocs() + " Spam Emails");
+//		System.out.println(emailTrainingData.getNumDocs() + " Total Emails");
+//		System.out.println(emailTrainingData.getTotalFlaggedWordCount() + " Spam Word Instances");
+//		System.out.println(emailTrainingData.getTotalUnflaggedWordCount() + " Valid Word Instances");
+//		System.out.println(emailTrainingData.getTotalWordCount() + " Total Word Instances");
+		
+//		double sum = 0;
+//		for(String key : mrd.getFlaggedLikelihoods().keySet()){
+//			sum += mrd.getFlaggedLikelihoods().get(key);
+//		}
+//		System.out.println(sum + " sum of likelihoods for spam words");
+//		
+//		sum = 0;
+//		for(String key : mrd.getUnflaggedLikelihoods().keySet()){
+//			sum += mrd.getUnflaggedLikelihoods().get(key);
+//		}
+//		System.out.println(sum + " sum of likelihoods for valid words");
+//		
+//		sum = 0;
+//		for(String key : mrd.getCombinedLikelihoods().keySet()){
+//			sum += mrd.getCombinedLikelihoods().get(key);
+//		}
+//		System.out.println(sum + " sum of likelihoods for all words");
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		String movieReviewTrainingDataFilename = "movie_reviews/rt-train.txt";
+		ArrayList<TextDocument> trainingReviews = fr.readDocumentData(movieReviewTrainingDataFilename);
+		String movieReviewTestingDataFilename = "movie_reviews/rt-test.txt";
+		ArrayList<TextDocument> testingReviews = fr.readDocumentData(movieReviewTestingDataFilename);
+		
+		DocumentDataset reviewTrainingData = new DocumentDataset(trainingReviews);
+		
+		FlagDetector positiveMovieReviewDetector = new FlagDetector(reviewTrainingData);
+		count=0;
+		for(TextDocument review : testingReviews){
+			boolean calculated = positiveMovieReviewDetector.detectFlag(review);
+			boolean expected = review.isFlagged();
+			if(calculated == expected){count++;};
+		}
+		System.out.println("Movie Review Positive Review Detection Accuracy: " + count/testingReviews.size());
 		
 	}
 
