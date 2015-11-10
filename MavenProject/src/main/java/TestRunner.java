@@ -21,7 +21,7 @@ public class TestRunner {
 		FlagDetector spamDetector = new FlagDetector(emailTrainingData);
 		double count=0;
 		for(TextDocument email : testingEmails){
-			boolean calculated = spamDetector.detectFlag(email);
+			boolean calculated = spamDetector.detectFlag(email, true);
 			boolean expected = email.isFlagged();
 			if(calculated == expected){count++;};
 			//System.out.println("Expected " + expected + ", determined " + calculated);
@@ -46,7 +46,7 @@ public class TestRunner {
 		FlagDetector positiveMovieReviewDetector = new FlagDetector(reviewTrainingData);
 		double count=0;
 		for(TextDocument review : testingReviews){
-			boolean calculated = positiveMovieReviewDetector.detectFlag(review);
+			boolean calculated = positiveMovieReviewDetector.detectFlag(review, true);
 			boolean expected = review.isFlagged();
 			if(calculated == expected){count++;};
 		}

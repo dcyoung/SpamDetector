@@ -18,6 +18,8 @@ public class DocumentDataset {
 	private HashMap<String, Integer> allDocWordCounts;
 	private HashMap<String, Integer> flaggedDocWordCounts;
 	private HashMap<String, Integer> unflaggedDocWordCounts;
+	private HashMap<String, Integer> flaggedDocOccurrenceCounts;
+	private HashMap<String, Integer> unflaggedDocOccurrenceCounts;
 	private int totalWordCount, totalFlaggedWordCount, totalUnflaggedWordCount;
 	
 	
@@ -25,6 +27,9 @@ public class DocumentDataset {
 	private HashMap<String, Double> flagLikelihoods;
 	private HashMap<String, Double> unflaggedLikelihoods;
 	private HashMap<String, Double> combinedLikelihoods;
+
+	private HashMap<String, Double> flagOccurrenceLikelihoods;
+	private HashMap<String, Double> unflagOccurrenceLikelihoods;
 	
 	
 	
@@ -64,24 +69,45 @@ public class DocumentDataset {
 		this.allDocWordCounts = new HashMap<String, Integer>();
 		this.flaggedDocWordCounts = new HashMap<String, Integer>();
 		this.unflaggedDocWordCounts = new HashMap<String, Integer>();
-		
+		this.flaggedDocOccurrenceCounts = new HashMap<String, Integer>();
+		this.unflaggedDocOccurrenceCounts = new HashMap<String, Integer>();
+
+		// accumulating word counts for flagged documents
 		for(TextDocument document : this.flaggedDocs){
 			for(String key : document.getWordCountMap().keySet()){
 				int prevCount = this.flaggedDocWordCounts.containsKey(key) ? this.flaggedDocWordCounts.get(key) : 0;
 				int additionalCount = document.getWordCountMap().get(key);
 				this.flaggedDocWordCounts.put(key, prevCount + additionalCount);
 				this.totalFlaggedWordCount += additionalCount;
+				
+				// This word has occurred in one more document
+				if (this.flaggedDocOccurrenceCounts.containsKey(key)) {
+					int val = this.flaggedDocOccurrenceCounts.get(key) + 1;
+					this.flaggedDocOccurrenceCounts.put(key, val);
+				} else {
+					this.flaggedDocOccurrenceCounts.put(key, 0);
+				}
 			}
 		}
+		// accumulating word counts for unflagged documents
 		for(TextDocument document : this.unflaggedDocs){
 			for(String key : document.getWordCountMap().keySet()){
 				int prevCount = this.unflaggedDocWordCounts.containsKey(key) ? this.unflaggedDocWordCounts.get(key) : 0;
 				int additionalCount = document.getWordCountMap().get(key);
 				this.unflaggedDocWordCounts.put(key, prevCount + additionalCount);
 				this.totalUnflaggedWordCount += additionalCount;
+
+				// This word has occurred in one more document
+				if (this.unflaggedDocOccurrenceCounts.containsKey(key)) {
+					int val = this.unflaggedDocOccurrenceCounts.get(key) + 1;
+					this.unflaggedDocOccurrenceCounts.put(key, val);
+				} else {
+					this.unflaggedDocOccurrenceCounts.put(key, 0);
+				}
 			}
 		}
-		
+
+		// adding accumulated results to all docs word counts
 		for(String key : this.flaggedDocWordCounts.keySet()){
 			int prevCount = this.allDocWordCounts.containsKey(key) ? this.allDocWordCounts.get(key) : 0;
 			int additionalCount = this.flaggedDocWordCounts.get(key);
@@ -103,6 +129,10 @@ public class DocumentDataset {
 		this.flagLikelihoods = new HashMap<String, Double>();
 		this.unflaggedLikelihoods = new HashMap<String, Double>();
 		this.combinedLikelihoods = new HashMap<String, Double>();
+
+		this.flagOccurrenceLikelihoods = new HashMap<String, Double>();
+		this.unflagOccurrenceLikelihoods = new HashMap<String, Double>();
+
 		double tempLikelihood;
 		
 		V = this.flaggedDocWordCounts.size();
@@ -122,29 +152,51 @@ public class DocumentDataset {
 			tempLikelihood = 1.0*(this.k+this.allDocWordCounts.get(key))/(this.k*V+this.totalWordCount);
 			this.combinedLikelihoods.put(key, tempLikelihood);
 		}
+
+		V = this.getNumFlaggedDocs();
+		for(String key : this.flaggedDocOccurrenceCounts.keySet()) {
+			tempLikelihood = 1.0*(this.k + this.flaggedDocOccurrenceCounts.get(key))/(this.k*V+this.getNumFlaggedDocs());
+			this.flagOccurrenceLikelihoods.put(key, tempLikelihood);
+		}
+
+		V = this.getNumUnflaggedDocs();
+		for(String key : this.unflaggedDocOccurrenceCounts.keySet()) {
+			tempLikelihood = 1.0*(this.k + this.unflaggedDocOccurrenceCounts.get(key))/(this.k*V+this.getNumUnflaggedDocs());
+			this.unflagOccurrenceLikelihoods.put(key, tempLikelihood);
+		}
 	}
 
-	public double getSpecificLikelihood(String word, boolean bAssumeFlag){
+	public double getSpecificLikelihood(String word, boolean bAssumeFlag, boolean bernoulli){
 		double likelihood;
 		double V;
 		if(bAssumeFlag){
-			if(this.flagLikelihoods.containsKey(word)){
-				likelihood = this.flagLikelihoods.get(word);
-			}
-			else{
-				V = this.flaggedDocWordCounts.size();
-				likelihood = 1.0*(this.k+0)/(this.k*V+this.totalFlaggedWordCount);
+			if (!bernoulli) {
+				if (this.flagLikelihoods.containsKey(word)) {
+					likelihood = this.flagLikelihoods.get(word);
+				} else {
+					V = this.flaggedDocWordCounts.size();
+					likelihood = 1.0 * (this.k + 0) / (this.k * V + this.totalFlaggedWordCount);
+				}
+			} else {
+				likelihood = this.flagOccurrenceLikelihoods.containsKey(word) ?
+							this.flagOccurrenceLikelihoods.get(word) :
+						(this.k / (this.getNumFlaggedDocs()*this.k + this.getNumFlaggedDocs()));
 			}
 		}
 		else{
-			if(this.unflaggedLikelihoods.containsKey(word)){
-				likelihood = this.unflaggedLikelihoods.get(word);
-			}
-			else{
-				V = this.unflaggedDocWordCounts.size();
-				likelihood = 1.0*(this.k+0)/(this.k*V+this.totalUnflaggedWordCount);
+			if(!bernoulli) {
+				if (this.unflaggedLikelihoods.containsKey(word)) {
+					likelihood = this.unflaggedLikelihoods.get(word);
+				} else {
+					V = this.unflaggedDocWordCounts.size();
+					likelihood = 1.0 * (this.k + 0) / (this.k * V + this.totalUnflaggedWordCount);
+				}
+			} else {
+				likelihood = this.unflagOccurrenceLikelihoods.containsKey(word) ?
+						this.unflagOccurrenceLikelihoods.get(word) : (this.k / this.getNumUnflaggedDocs()*this.k + this.getNumUnflaggedDocs());
 			}
 		}
+
 		return likelihood;
 	}
 	
