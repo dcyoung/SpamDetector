@@ -182,7 +182,7 @@ public class DocumentDataset {
 			} else {
 				likelihood = this.flagOccurrenceLikelihoods.containsKey(word) ?
 							this.flagOccurrenceLikelihoods.get(word) :
-						(this.k / (this.k + this.getNumFlaggedDocs()));
+						 (1.0 * this.k) / (this.k + this.getNumFlaggedDocs());
 			}
 		}
 		else{
@@ -195,7 +195,7 @@ public class DocumentDataset {
 				}
 			} else {
 				likelihood = this.unflagOccurrenceLikelihoods.containsKey(word) ?
-						this.unflagOccurrenceLikelihoods.get(word) : (this.k / (this.k + this.getNumUnflaggedDocs()));
+						this.unflagOccurrenceLikelihoods.get(word) : (1.0 * this.k) / (this.k + this.getNumUnflaggedDocs());
 			}
 		}
 
