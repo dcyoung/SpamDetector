@@ -1,3 +1,6 @@
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -272,7 +275,42 @@ public class DocumentDataset {
 		return combinedLikelihoods;
 	}
 
-	
+	public void generateIntermediateWordMapFile(String allDocFilename, String flaggedDocFilename, String unflaggedDocFilename){
+		PrintWriter writer;
+		try {
+			
+			writer = new PrintWriter(allDocFilename, "UTF-8");
+			for(String key : this.getAllDocWordCounts().keySet()){
+				for(int i = 0; i < this.getAllDocWordCounts().get(key); i++){
+					writer.print(key + " ");
+				}
+			}
+			writer.close();
+			
+			writer = new PrintWriter(flaggedDocFilename, "UTF-8");
+			for(String key : this.getFlaggedDocWordCounts().keySet()){
+				for(int i = 0; i < this.getFlaggedDocWordCounts().get(key); i++){
+					writer.print(key + " ");
+				}
+			}
+			writer.close();
+			
+			writer = new PrintWriter(unflaggedDocFilename, "UTF-8");
+			for(String key : this.getUnflaggedDocWordCounts().keySet()){
+				for(int i = 0; i < this.getUnflaggedDocWordCounts().get(key); i++){
+					writer.print(key + " ");
+				}
+			}
+			writer.close();
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	
 	public static void main(String[] args) {
