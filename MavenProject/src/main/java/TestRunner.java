@@ -5,7 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+import org.apache.commons.lang.ArrayUtils;
 
 import wordcloud.CollisionMode;
 import wordcloud.PolarBlendMode;
@@ -26,8 +29,42 @@ public class TestRunner {
 		
 	}
 	
+	
+	public void top20Words(){
+		FileReader fr = new FileReader();
+		
+		String emailTrainingDataFilename = "spam_detection/train_email.txt";
+		ArrayList<TextDocument> trainingEmails = fr.readDocumentData(emailTrainingDataFilename);
+		DocumentDataset emailTrainingData = new DocumentDataset(trainingEmails);
+
+		String movieReviewTrainingDataFilename = "movie_reviews/rt-train.txt";
+		ArrayList<TextDocument> trainingReviews = fr.readDocumentData(movieReviewTrainingDataFilename);
+		DocumentDataset reviewTrainingData = new DocumentDataset(trainingReviews);
+		
+		
+		
+		Map<String, Double> sortedMap = reviewTrainingData.getUnflaggedLikelihoods();
+		
+		sortedMap = MapUtil.sortByValue(sortedMap);
+			
+		Object[] keys = sortedMap.keySet().toArray();
+		ArrayUtils.reverse(keys);
+		
+		
+		for(int i = 0; i < 20; i++){
+			String key  =  (String) keys[i];
+			//System.out.println(""+ key + " = " + sortedMap.get(key));
+			System.out.println(key);
+		}
+		
+				
+	}
+	
+	
+	
 	public double testSpamDetectionAccuracy(boolean bBernoulli){
 		
+		System.out.println("testing spam detection with bernoulli: " + bBernoulli);
 		FileReader fr = new FileReader();
 		
 		String emailTrainingDataFilename = "spam_detection/train_email.txt";
@@ -38,21 +75,41 @@ public class TestRunner {
 		DocumentDataset emailTrainingData = new DocumentDataset(trainingEmails);
 
 		FlagDetector spamDetector = new FlagDetector(emailTrainingData);
-		double count=0;
+		double totalCountCorrectlyClassified = 0;
+		double spamCountCorrectlyClassified = 0;
+		double spamCountTotal = 0;
+		double validCountCorrectlyClassified = 0;
+		double validCountTotal = 0;
+		
 		for(TextDocument email : testingEmails){
 			boolean calculated = spamDetector.detectFlag(email, bBernoulli);
 			boolean expected = email.isFlagged();
-			if(calculated == expected){count++;};
+			
+			if(calculated == expected){totalCountCorrectlyClassified++;};
 			//System.out.println("Expected " + expected + ", determined " + calculated);
+			
+			if(expected){
+				spamCountTotal++;
+				if(calculated == expected){spamCountCorrectlyClassified++;};
+			}
+			else{
+				validCountTotal++;
+				if(calculated == expected){validCountCorrectlyClassified++;};
+			}
 		}
-		double accuracy = count / testingEmails.size();
-		//System.out.println("Email Spam Detection Accuracy: " + accuracy);
+		double accuracy = totalCountCorrectlyClassified / testingEmails.size();
+		System.out.println("Spam classified as spam:" + (spamCountCorrectlyClassified/spamCountTotal));
+		System.out.println("Spam classified as valid:" + (1-(spamCountCorrectlyClassified/spamCountTotal)));
+		System.out.println("Valid classified as Valid:" + (validCountCorrectlyClassified/validCountTotal));
+		System.out.println("Valid classified as Spam:" + (1-(validCountCorrectlyClassified/validCountTotal)));
+		
+		System.out.println("Email Spam Detection Accuracy: " + accuracy);
 		return accuracy; 
 	}
 	
 	
 	public double testMovieReviewDetectionAccuracy(boolean bBernoulli){
-		
+		System.out.println("testing movei review detection with bernoulli: " + bBernoulli);
 		FileReader fr = new FileReader();
 		
 		String movieReviewTrainingDataFilename = "movie_reviews/rt-train.txt";
@@ -63,14 +120,33 @@ public class TestRunner {
 		DocumentDataset reviewTrainingData = new DocumentDataset(trainingReviews);
 		
 		FlagDetector positiveMovieReviewDetector = new FlagDetector(reviewTrainingData);
-		double count=0;
+		double totalCountCorrectlyClassified=0;
+		double positiveCountCorrectlyClassified = 0;
+		double positiveCountTotal = 0;
+		double negatveCountCorrectlyClassified = 0;
+		double negativeCountTotal = 0;
+		
 		for(TextDocument review : testingReviews){
 			boolean calculated = positiveMovieReviewDetector.detectFlag(review, bBernoulli);
 			boolean expected = review.isFlagged();
-			if(calculated == expected){count++;};
+			if(calculated == expected){totalCountCorrectlyClassified++;};
+			
+			if(expected){
+				positiveCountTotal++;
+				if(calculated == expected){positiveCountCorrectlyClassified++;};
+			}
+			else{
+				negativeCountTotal++;
+				if(calculated == expected){negatveCountCorrectlyClassified++;};
+			}
+			
 		}
-		double accuracy = count / testingReviews.size();
-		//System.out.println("Movie Review Positive Review Detection Accuracy: " + accuracy);
+		double accuracy = totalCountCorrectlyClassified / testingReviews.size();
+		System.out.println("Movie Review Positive Review Detection Accuracy: " + accuracy);
+		System.out.println("Positive classified as Positive:" + (positiveCountCorrectlyClassified/positiveCountTotal));
+		System.out.println("Positive classified as Negative:" + (1-(positiveCountCorrectlyClassified/positiveCountTotal)));
+		System.out.println("Negative classified as Negative:" + (negatveCountCorrectlyClassified/negativeCountTotal));
+		System.out.println("Negative classified as Positive:" + (1-(negatveCountCorrectlyClassified/negativeCountTotal)));
 		
 		return accuracy;
 	}
@@ -137,6 +213,9 @@ public class TestRunner {
 	public static void main(String[] args) {
 
 		TestRunner tr = new TestRunner();
+		//tr.top20Words();
+		
+		
 		double spamAccuracy = tr.testSpamDetectionAccuracy(false);
 		double movieAccuracy = tr.testMovieReviewDetectionAccuracy(false);
 		System.out.println("Testing Multinomial Bayes...");
@@ -158,14 +237,14 @@ public class TestRunner {
 		intermediateFlaggedFilename = "src/main/resources/wordMapData/emailTrainingDataForMap_spam.txt";
 		intermediateUnflaggedFilename = "src/main/resources/wordMapData/emailTrainingDataForMap_valid.txt";
 		dstImgFilename = "src/main/resources/wordMapData/polar_Spam_vs_Valid.png";
-		tr.testWordCloudGenerator(intermediateFlaggedFilename, intermediateUnflaggedFilename, dstImgFilename);
+		//tr.testWordCloudGenerator(intermediateFlaggedFilename, intermediateUnflaggedFilename, dstImgFilename);
 		
 		
 		//generate the word cloud comparing the positive and negative review training data
 		intermediateFlaggedFilename = "src/main/resources/wordMapData/movieReviewTrainingDataForMap_positive.txt";
 		intermediateUnflaggedFilename = "src/main/resources/wordMapData/movieReviewTrainingDataForMap_negative.txt";
 		dstImgFilename = "src/main/resources/wordMapData/polar_Positive_vs_Negative.png";
-		tr.testWordCloudGenerator(intermediateFlaggedFilename, intermediateUnflaggedFilename, dstImgFilename);
+		//tr.testWordCloudGenerator(intermediateFlaggedFilename, intermediateUnflaggedFilename, dstImgFilename);
 		
 	}
 
